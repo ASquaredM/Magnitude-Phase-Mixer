@@ -1,6 +1,6 @@
 ## Write your name and ID
-### Name:
-### ID: 
+### Name: Ahmad Adel Muhammad
+### ID: 7
 
 # MagnitudePhaseMixerTemplate
 Starter Template for Magnitude Phase Mixer Task
