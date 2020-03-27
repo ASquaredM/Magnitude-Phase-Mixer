@@ -43,14 +43,18 @@ class ApplicationWindow(UI.Ui_MainWindow):
         self.Upbtn2.clicked.connect(lambda: self.Disp(1, True))
 
         self.Img1_Comb.currentIndexChanged.connect(lambda: self.Disp(0, False))
-        self.Img1_Comb_2.currentIndexChanged.connect(
-            lambda: self.Disp(1, False))
+        self.Img1_Comb_2.currentIndexChanged.connect(lambda: self.Disp(1, False))
+        self.Output_Comb.currentIndexChanged.connect(lambda: self.Mixer(self.Output_Comb.currentIndex()))
+
+        self.SlidersInit()
 
     def Init(self):
-        self.ImgUp = [False, False]
-        self.Img1 = np.empty(0)
-        self.Img2 = np.empty(0)
-        self.Img = [self.Img1, self.Img2]
+        self.ImgUp = [False, False,False,False]
+        self.Img1 = np.empty(0,dtype=complex)
+        self.Img2 = np.empty(0,dtype=complex)
+        self.Mix1 = np.empty(0,dtype=complex)
+        self.Mix2 = np.empty(0,dtype=complex)
+        self.Img = [self.Img1, self.Img2,self.Mix1,self.Mix2]
 
     def DisableMixer(self):
         self.Output_Comb.setEnabled(False)
@@ -69,6 +73,18 @@ class ApplicationWindow(UI.Ui_MainWindow):
         self.Comp2_CombS.setEnabled(True)
         self.Slider2.setEnabled(True)
         self.Comp2C_CombS.setEnabled(True)
+
+    def SlidersInit(self):
+        self.Slider1.setMaximum(100)
+        self.Slider1.setSingleStep(10)
+        self.Slider1.setSliderPosition(50)
+        self.Slider1.setTracking(False)
+        self.Slider1.valueChanged.connect(lambda: print(self.Slider1.sliderPosition()))
+        self.Slider2.setMaximum(100)
+        self.Slider2.setSingleStep(10)
+        self.Slider2.setSliderPosition(50)
+        self.Slider2.setTracking(False)
+        self.Slider2.valueChanged.connect(lambda: print(self.Slider1.sliderPosition()))
 
     def GetImage(self, i):
         filePath = QtWidgets.QFileDialog.getOpenFileName(
@@ -102,7 +118,9 @@ class ApplicationWindow(UI.Ui_MainWindow):
         if GI == True:
             self.GetImage(i)
 
-        if self.ImgUp[i] == True:
+        if i == 3 or i == 4:
+            self.Viewers[i+1].setImage(self.Img[i-1])
+        elif self.ImgUp[i] == True: 
             self.Viewers[i].setImage(self.Img[i].T)
             self.Viewers[i + 2].setImage(Comp(self.Img[i].T,self.Combs[i].currentIndex()))
             if self.Combs[i].currentIndex() == 0:
@@ -113,7 +131,38 @@ class ApplicationWindow(UI.Ui_MainWindow):
         else:
             self.DisableMixer()
 
-
+    def Mixer(self, i):
+        if self.Output_Comb.currentIndex() == 0:
+            self.Output_Comb.setCurrentIndex(1)
+            i = 1
+        if self.Comp1_CombS.currentIndex() == 0:
+            self.Comp1_CombS.setCurrentIndex(1)
+        if self.Comp2_CombS.currentIndex() == 0:
+            self.Comp2_CombS.setCurrentIndex(2)
+        if self.Comp1C_CombS.currentIndex() == 0:
+            self.Comp1C_CombS.setCurrentIndex(1)
+        if self.Comp2C_CombS.currentIndex() == 0:
+            self.Comp2C_CombS.setCurrentIndex(2)
+        
+        R1 = (self.Slider1.value() / 100.0)
+        R2 = (self.Slider2.value() / 100.0)
+        
+        if (self.Comp1_CombS.currentIndex()-1):
+            C1 = (R1*Comp(self.Img[1].T, self.Comp1C_CombS.currentIndex()+4)) + ((1-R1)*Comp(self.Img[0].T, self.Comp1C_CombS.currentIndex()+4)) 
+        else:
+            C1 = (R1*Comp(self.Img[0].T, self.Comp1C_CombS.currentIndex()+4)) + ((1-R1)*Comp(self.Img[1].T, self.Comp1C_CombS.currentIndex()+4))
+        
+        if (self.Comp2_CombS.currentIndex()-1):
+            C2 = (R2*Comp(self.Img[1].T, self.Comp2C_CombS.currentIndex()+4)) + ((1-R2)*Comp(self.Img[0].T, self.Comp2C_CombS.currentIndex()+4)) 
+        else:
+            C2 = (R2*Comp(self.Img[0].T, self.Comp2C_CombS.currentIndex()+4)) + ((1-R2)*Comp(self.Img[1].T, self.Comp2C_CombS.currentIndex()+4))
+        
+        if self.Comp1C_CombS.currentIndex() == 1 or self.Comp1C_CombS.currentIndex() == 5:
+            self.Img[i + 1] = np.real(np.fft.ifft2(np.multiply(C1,np.exp(1j * C2))))
+            self.Disp(i + 2, False)
+        elif self.Comp1C_CombS.currentIndex() == 2 or self.Comp1C_CombS.currentIndex() == 6:
+            self.Img[i + 1] = np.real(np.fft.ifft2(np.multiply(C2,np.exp(1j * C1))))
+            self.Disp(i + 2, False)
 def main():
     app = QtWidgets.QApplication(sys.argv)
     mainWindow = QtWidgets.QMainWindow()
