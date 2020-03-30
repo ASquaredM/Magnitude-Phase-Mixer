@@ -35,3 +35,13 @@ def Comp(Img, OP_CODE):
     if OP_CODE == 8:
         imag_comp = np.imag(f)
         return imag_comp
+
+    if OP_CODE == 9:
+        magnitude_spectrum = np.abs(f)
+        magnitude_spectrum = np.ones(len(magnitude_spectrum))
+        return magnitude_spectrum
+
+    if OP_CODE == 10:
+        phase_spectrum = np.angle(f)
+        phase_spectrum = np.zeros(len(phase_spectrum))
+        return phase_spectrum

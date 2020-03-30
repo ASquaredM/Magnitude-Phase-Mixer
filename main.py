@@ -163,6 +163,14 @@ class ApplicationWindow(UI.Ui_MainWindow):
         elif self.Comp1C_CombS.currentIndex() == 2 or self.Comp1C_CombS.currentIndex() == 6:
             self.Img[i + 1] = np.real(np.fft.ifft2(np.multiply(C2,np.exp(1j * C1))))
             self.Disp(i + 2, False)
+        elif self.Comp1C_CombS.currentIndex() == 3:
+            self.Img[i + 1] = np.real(np.fft.ifft2(C1 + C2*1j))
+            self.Disp(i + 2, False)
+        elif self.Comp1C_CombS.currentIndex() == 4:
+            self.Img[i + 1] = np.real(np.fft.ifft2(C2 + C1*1j))
+            self.Disp(i + 2, False)
+
+        
 def main():
     app = QtWidgets.QApplication(sys.argv)
     mainWindow = QtWidgets.QMainWindow()
