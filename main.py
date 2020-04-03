@@ -5,8 +5,9 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 import UI
-from GetDataFromFile import getDataFromAFile
 from Image import Comp
+from imageModel import ImageModel as IM
+from modesEnum import Modes
 
 
 class ApplicationWindow(UI.Ui_MainWindow):
@@ -50,8 +51,8 @@ class ApplicationWindow(UI.Ui_MainWindow):
 
     def Init(self):
         self.ImgUp = [False, False,False,False]
-        self.Img1 = np.empty(0,dtype=complex)
-        self.Img2 = np.empty(0,dtype=complex)
+        self.Img1 = IM("results/test.jpg")
+        self.Img2 = IM("results/test2.jpg")
         self.Mix1 = np.empty(0,dtype=complex)
         self.Mix2 = np.empty(0,dtype=complex)
         self.Img = [self.Img1, self.Img2,self.Mix1,self.Mix2]
@@ -87,42 +88,53 @@ class ApplicationWindow(UI.Ui_MainWindow):
         self.Slider2.valueChanged.connect(lambda: print(self.Slider1.sliderPosition()))
 
     def GetImage(self, i):
-        filePath = QtWidgets.QFileDialog.getOpenFileName(
-            None, 'load', "./", "All Files *;")
-        self.Img[i] = getDataFromAFile(filePath)
-        if str(type(self.Img[i])) == "<class 'NoneType'>":
-            self.ImgUp[i] = False
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        self.filePath, self.format = QtWidgets.QFileDialog.getOpenFileName(
+            None,
+            "Load Image",
+            "",
+            "Images (*.png *.xpm *.jpg);;",
+            options=QtWidgets.QFileDialog.DontUseNativeDialog,
+        )
+        print("filepath is >>>>>",self.filePath)
+        if self.filePath == "":
+            pass
         else:
-            if any(self.ImgUp):
-                if self.ImgUp[i] == False:
-                    if self.Img[0].shape == self.Img[1].shape:
-                        self.ImgUp[i] = True
-                    else:
-                        self.Img[i] = np.empty(0)
-                        self.Viewers[i].clear()
-                        self.Viewers[i + 2].clear()
-                        #todo: add popUp
-                elif (self.ImgUp[i] == True) and (self.ImgUp[0] == self.ImgUp[1]):
-                    if self.Img[0].shape == self.Img[1].shape:
-                        self.ImgUp[i] = True
-                    else:
-                        self.Img[i] = np.empty(0)
-                        self.ImgUp[i] = False
-                        self.Viewers[i].clear()
-                        self.Viewers[i + 2].clear()
-                        #todo: add popUp
+            self.Img[i] = IM(self.filePath)
+            if str(type(self.Img[i].imgByte)) == "<class 'NoneType'>":
+                self.ImgUp[i] = False
             else:
-                self.ImgUp[i] = True
+                if any(self.ImgUp):
+                    if self.ImgUp[i] == False:
+                        if self.Img[0].imgByte.shape == self.Img[1].imgByte.shape:
+                            self.ImgUp[i] = True
+                        else:
+                            self.Img[i] = np.empty(0)
+                            self.Viewers[i].clear()
+                            self.Viewers[i + 2].clear()
+                            #todo: add popUp
+                    elif (self.ImgUp[i] == True) and (self.ImgUp[0] == self.ImgUp[1]):
+                        if self.Img[0].imgByte.shape == self.Img[1].imgByte.shape:
+                            self.ImgUp[i] = True
+                        else:
+                            self.Img[i] = np.empty(0)
+                            self.ImgUp[i] = False
+                            self.Viewers[i].clear()
+                            self.Viewers[i + 2].clear()
+                            #todo: add popUp
+                else:
+                    self.ImgUp[i] = True
 
     def Disp(self, i, GI):
         if GI == True:
             self.GetImage(i)
 
         if i == 3 or i == 4:
-            self.Viewers[i+1].setImage(self.Img[i-1])
+            self.Viewers[i+1].setImage(self.Img[i-1].T)
         elif self.ImgUp[i] == True: 
-            self.Viewers[i].setImage(self.Img[i].T)
-            self.Viewers[i + 2].setImage(Comp(self.Img[i].T,self.Combs[i].currentIndex()))
+            self.Viewers[i].setImage(self.Img[i].imgByte.T)
+            self.Viewers[i + 2].setImage(self.Img[i].Comp[self.Combs[i].currentIndex()])
             if self.Combs[i].currentIndex() == 0:
                 self.Combs[i].setCurrentIndex(1)
 
@@ -144,30 +156,78 @@ class ApplicationWindow(UI.Ui_MainWindow):
         if self.Comp2C_CombS.currentIndex() == 0:
             self.Comp2C_CombS.setCurrentIndex(2)
         
-        R1 = (self.Slider1.value() / 100.0)
+        
         R2 = (self.Slider2.value() / 100.0)
         
-        if (self.Comp1_CombS.currentIndex()-1):
-            C1 = (R1*Comp(self.Img[1].T, self.Comp1C_CombS.currentIndex()+4)) + ((1-R1)*Comp(self.Img[0].T, self.Comp1C_CombS.currentIndex()+4)) 
+        if (self.Combs[3].currentIndex()-1):
+            if self.Combs[4].currentIndex() == 1 or self.Combs[4].currentIndex() == 3:
+                R1 = (self.Slider1.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_MAGNITUDE = False
+            elif self.Combs[4].currentIndex() == 2 or self.Combs[4].currentIndex() == 4:
+                R1 = (self.Slider2.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_PHASE = False
+            
+            if self.Combs[4].currentIndex() == 5:
+                R1 = (self.Slider1.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_MAGNITUDE = True
+            elif self.Combs[4].currentIndex() == 6:
+                R1 = (self.Slider2.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_PHASE = True
         else:
-            C1 = (R1*Comp(self.Img[0].T, self.Comp1C_CombS.currentIndex()+4)) + ((1-R1)*Comp(self.Img[1].T, self.Comp1C_CombS.currentIndex()+4))
-        
-        if (self.Comp2_CombS.currentIndex()-1):
-            C2 = (R2*Comp(self.Img[1].T, self.Comp2C_CombS.currentIndex()+4)) + ((1-R2)*Comp(self.Img[0].T, self.Comp2C_CombS.currentIndex()+4)) 
+            if self.Combs[4].currentIndex() == 1 or self.Combs[4].currentIndex() == 3:
+                R1 = 1 - (self.Slider1.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_MAGNITUDE = False
+            elif self.Combs[4].currentIndex() == 2 or self.Combs[4].currentIndex() == 4:
+                R1 = 1 - (self.Slider2.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_PHASE = False
+            elif self.Combs[4].currentIndex() == 5:
+                R1 = 1 - (self.Slider1.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_MAGNITUDE = True
+            elif self.Combs[4].currentIndex() == 6:
+                R1 = 1 - (self.Slider2.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_PHASE = True
+            #C1 = (R1*Comp(self.Img[1].imgByte.T, self.Comp1C_CombS.currentIndex()+4)) + ((1-R1)*Comp(self.Img[0].imgByte.T, self.Comp1C_CombS.currentIndex()+4))
+
+        if (self.Combs[5].currentIndex() - 1):
+            if self.Combs[6].currentIndex() == 1 or self.Combs[6].currentIndex() == 3:
+                R2 = (self.Slider1.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_MAGNITUDE = False
+            elif self.Combs[6].currentIndex() == 2 or self.Combs[6].currentIndex() == 4:
+                R2 = (self.Slider2.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_PHASE = False
+            
+            if self.Combs[6].currentIndex() == 5:
+                R2 = (self.Slider1.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_MAGNITUDE = True
+            elif self.Combs[6].currentIndex() == 6:
+                R2 = (self.Slider2.value() / 100.0)
+                self.Img[1].ENABLE_UNIFORM_PHASE = True
         else:
-            C2 = (R2*Comp(self.Img[0].T, self.Comp2C_CombS.currentIndex()+4)) + ((1-R2)*Comp(self.Img[1].T, self.Comp2C_CombS.currentIndex()+4))
+            if self.Combs[4].currentIndex() == 1 or self.Combs[4].currentIndex() == 3:
+                R2 = 1 - (self.Slider1.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_MAGNITUDE = False
+            elif self.Combs[4].currentIndex() == 2 or self.Combs[4].currentIndex() == 4:
+                R2 = 1 - (self.Slider2.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_PHASE = False
+            elif self.Combs[4].currentIndex() == 5:
+                R2 = 1 - (self.Slider1.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_MAGNITUDE = True
+            elif self.Combs[4].currentIndex() == 6:
+                R2 = 1 - (self.Slider2.value() / 100.0)
+                self.Img[0].ENABLE_UNIFORM_PHASE = True
+            #C2 = (R2*Comp(self.Img[0].imgByte.T, self.Comp2C_CombS.currentIndex()+4)) + ((1-R2)*Comp(self.Img[1].imgByte.T, self.Comp2C_CombS.currentIndex()+4))
         
-        if self.Comp1C_CombS.currentIndex() == 1 or self.Comp1C_CombS.currentIndex() == 5:
-            self.Img[i + 1] = np.real(np.fft.ifft2(np.multiply(C1,np.exp(1j * C2))))
+        if self.Combs[4].currentIndex() == 1 or self.Combs[4].currentIndex() == 5:
+            self.Img[i+1] = IM.mix(self.Img[1],self.Img[0],R1,R2,Modes.magnitudeAndPhase)
             self.Disp(i + 2, False)
-        elif self.Comp1C_CombS.currentIndex() == 2 or self.Comp1C_CombS.currentIndex() == 6:
-            self.Img[i + 1] = np.real(np.fft.ifft2(np.multiply(C2,np.exp(1j * C1))))
+        elif self.Combs[4].currentIndex() == 2 or self.Combs[4].currentIndex() == 6:
+            self.Img[i+1] = IM.mix(self.Img[0],self.Img[1],R1,R2,Modes.magnitudeAndPhase)
             self.Disp(i + 2, False)
-        elif self.Comp1C_CombS.currentIndex() == 3:
-            self.Img[i + 1] = np.real(np.fft.ifft2(C1 + C2*1j))
+        elif self.Combs[4].currentIndex() == 3:
+            self.Img[i+1] = IM.mix(self.Img[1],self.Img[0],R1,R2,Modes.realAndImaginary)
             self.Disp(i + 2, False)
-        elif self.Comp1C_CombS.currentIndex() == 4:
-            self.Img[i + 1] = np.real(np.fft.ifft2(C2 + C1*1j))
+        elif self.Combs[4].currentIndex() == 4:
+            self.Img[i+1] = IM.mix(self.Img[0],self.Img[1],R1,R2,Modes.realAndImaginary)
             self.Disp(i + 2, False)
 
         
