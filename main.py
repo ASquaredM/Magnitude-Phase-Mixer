@@ -5,7 +5,6 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 import UI
-from Image import Comp
 from imageModel import ImageModel as IM
 from modesEnum import Modes
 
